@@ -1,10 +1,10 @@
 #
-# Copyright 2016-2020, Cypress Semiconductor Corporation or a subsidiary of
-# Cypress Semiconductor Corporation. All Rights Reserved.
+# Copyright 2016-2021, Cypress Semiconductor Corporation (an Infineon company) or
+# an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
 #
 # This software, including source code, documentation and related
-# materials ("Software"), is owned by Cypress Semiconductor Corporation
-# or one of its subsidiaries ("Cypress") and is protected by and subject to
+# materials ("Software") is owned by Cypress Semiconductor Corporation
+# or one of its affiliates ("Cypress") and is protected by and subject to
 # worldwide patent protection (United States and foreign),
 # United States copyright laws and international treaty provisions.
 # Therefore, you may use this Software only as provided in the license
@@ -13,7 +13,7 @@
 # If no EULA applies, Cypress hereby grants you a personal, non-exclusive,
 # non-transferable license to copy, modify, and compile the Software
 # source code solely for use in connection with Cypress's
-# integrated circuit products. Any reproduction, modification, translation,
+# integrated circuit products.  Any reproduction, modification, translation,
 # compilation, or representation of this Software except as specified
 # above is prohibited without the express written permission of Cypress.
 #
@@ -50,6 +50,11 @@ SUPPORTED_TARGETS = \
   CYW920819EVB-02 \
   CYW920820EVB-02 \
   CYBT-213043-EVAL \
+  CYBT-243053-EVAL \
+  CYBT-253059-EVAL \
+  CYBT-223058-EVAL \
+  CYBT-273063-EVAL \
+  CYBT-263065-EVAL \
   CYW989820EVB-01 \
   CYW920721B2EVK-03 \
   CYW920721B2EVK-02 \
@@ -58,7 +63,10 @@ SUPPORTED_TARGETS = \
   CYBT-353027-EVAL \
   CYBT-343026-EVAL \
   CYW920735Q60EVB-01 \
-  CYW9M2BASE-43012BT
+  CYW9M2BASE-43012BT \
+  CYW920721M2EVK-01 \
+  CYW920721M2EVK-02 \
+  CYW943012BTEVK-01
 
 #
 # Advanced Configuration

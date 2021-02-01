@@ -1,10 +1,10 @@
 /*
- * Copyright 2016-2020, Cypress Semiconductor Corporation or a subsidiary of
- * Cypress Semiconductor Corporation. All Rights Reserved.
+ * Copyright 2016-2021, Cypress Semiconductor Corporation (an Infineon company) or
+ * an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
  *
  * This software, including source code, documentation and related
- * materials ("Software"), is owned by Cypress Semiconductor Corporation
- * or one of its subsidiaries ("Cypress") and is protected by and subject to
+ * materials ("Software") is owned by Cypress Semiconductor Corporation
+ * or one of its affiliates ("Cypress") and is protected by and subject to
  * worldwide patent protection (United States and foreign),
  * United States copyright laws and international treaty provisions.
  * Therefore, you may use this Software only as provided in the license
@@ -13,7 +13,7 @@
  * If no EULA applies, Cypress hereby grants you a personal, non-exclusive,
  * non-transferable license to copy, modify, and compile the Software
  * source code solely for use in connection with Cypress's
- * integrated circuit products. Any reproduction, modification, translation,
+ * integrated circuit products.  Any reproduction, modification, translation,
  * compilation, or representation of this Software except as specified
  * above is prohibited without the express written permission of Cypress.
  *
@@ -94,7 +94,9 @@
 #include "string.h"
 #include "wiced_bt_stack.h"
 #include "wiced_bt_rfcomm.h"
-
+#if defined(CYW20706A2) || defined(CYW43012C0)
+#include "wiced_bt_app_hal_common.h"
+#endif
 
 #define HCI_TRACE_OVER_TRANSPORT            1   // If defined HCI traces are send over transport/WICED HCI interface
 // configure either SEND_DATA_ON_INTERRUPT or SEND_DATA_ON_TIMEOUT, but not both
@@ -124,6 +126,17 @@
 
 #define APP_TOTAL_DATA_TO_SEND             1000000
 #define BUTTON_GPIO                         WICED_P30
+
+#if defined(CYW43012C0)
+#define WICED_PLATFORM_BUTTON_1          WICED_P00
+#ifndef WICED_GPIO_BUTTON
+#define WICED_GPIO_BUTTON                WICED_PLATFORM_BUTTON_1
+#endif
+#ifndef WICED_GPIO_BUTTON_DEFAULT_STATE
+#define WICED_GPIO_BUTTON_DEFAULT_STATE  GPIO_PIN_OUTPUT_HIGH
+#endif
+#endif
+
 int     app_send_offset = 0;
 uint8_t app_send_buffer[SPP_MAX_PAYLOAD];
 uint32_t time_start = 0;
@@ -352,12 +365,11 @@ void application_init(void)
 #if !defined (CYW20706A2) && !defined (CYW43012C0)
     /* Configure the button available on the platform */
     wiced_platform_register_button_callback( WICED_PLATFORM_BUTTON_1, app_interrupt_handler, NULL, WICED_PLATFORM_BUTTON_RISING_EDGE);
-#elif defined (CYW43012C0)
-    wiced_hal_gpio_register_pin_for_interrupt(WICED_GPIO_PIN_BUTTON, app_interrupt_handler, NULL);
-    wiced_hal_gpio_configure_pin(WICED_GPIO_PIN_BUTTON, WICED_GPIO_BUTTON_SETTINGS, GPIO_PIN_OUTPUT_LOW);
-#else
-    wiced_hal_gpio_configure_pin( WICED_GPIO_BUTTON, WICED_GPIO_BUTTON_SETTINGS( GPIO_EN_INT_RISING_EDGE ), WICED_GPIO_BUTTON_DEFAULT_STATE );
-    wiced_hal_gpio_register_pin_for_interrupt(WICED_GPIO_BUTTON, app_interrupt_handler, NULL);
+#elif defined(CYW20706A2) || defined(CYW43012C0)
+/* Initializes the GPIO driver */
+    wiced_bt_app_hal_init();
+	wiced_hal_gpio_configure_pin(WICED_GPIO_BUTTON, WICED_GPIO_BUTTON_SETTINGS( GPIO_EN_INT_RISING_EDGE ), WICED_GPIO_BUTTON_DEFAULT_STATE );
+	wiced_hal_gpio_register_pin_for_interrupt(WICED_GPIO_BUTTON, app_interrupt_handler, NULL);
 #endif // CYW20706A2 && CYW43012C0
     // init timer that we will use for the rx data flow control.
     wiced_init_timer(&app_tx_timer, app_tx_ack_timeout, 0, WICED_MILLI_SECONDS_TIMER);
