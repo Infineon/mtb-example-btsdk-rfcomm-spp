@@ -55,13 +55,19 @@ SUPPORTED_TARGETS = \
   CYBT-223058-EVAL \
   CYBT-273063-EVAL \
   CYBT-263065-EVAL \
+  CYBT-413055-EVAL \
+  CYBT-413061-EVAL \
+  CYBT-423054-EVAL \
+  CYBT-423060-EVAL \
+  CYBT-483056-EVAL \
+  CYBT-483062-EVAL \
   CYW989820EVB-01 \
-  CYW920721B2EVK-03 \
   CYW920721B2EVK-02 \
   CYW920719B2Q40EVB-01 \
   CYW920706WCDEVAL \
   CYBT-353027-EVAL \
   CYBT-343026-EVAL \
+  CYBT-343052-EVAL \
   CYW920735Q60EVB-01 \
   CYW9M2BASE-43012BT \
   CYW920721M2EVK-01 \
@@ -93,6 +99,12 @@ UART?=AUTO
 XIP?=xip
 TRANSPORT?=UART
 ENABLE_DEBUG?=0
+# SEND_DATA on INTERRUPT if defined, the app will send 1Meg of data on application button push (provided BSP supports application button).
+# otherwise TIMEOUT will be used, the app will send 4 bytes every second while session is up
+SEND_DATA?=INTERRUPT
+
+# LOOPBACK_DATA if enabled, the app sends back received data.
+LOOPBACK_DATA?=0
 
 ifeq ($(TARGET),CYW920735Q60EVB-01)
 APP_SSP=1
@@ -105,6 +117,16 @@ endif
 
 CY_APP_DEFINES+=\
   -DWICED_BT_TRACE_ENABLE
+
+ifeq ($(SEND_DATA),INTERRUPT)
+CY_APP_DEFINES+=-DSEND_DATA_ON_INTERRUPT=1
+else
+CY_APP_DEFINES+=-DSEND_DATA_ON_TIMEOUT=1
+endif
+
+ifeq ($(LOOPBACK_DATA),1)
+CY_APP_DEFINES+=-DLOOPBACK_DATA=1
+endif
 
 #
 # Components (middleware libraries)
@@ -166,6 +188,6 @@ CY_BT_APP_TOOLS=BTSpy ClientControl
 
 -include internal.mk
 ifeq ($(filter $(TARGET),$(SUPPORTED_TARGETS)),)
-$(error TARGET $(TARGET) not supported for this code example)
+$(error TARGET $(TARGET) not supported for this application. Edit SUPPORTED_TARGETS in the code example makefile to add new BSPs)
 endif
 include $(CY_TOOLS_DIR)/make/start.mk

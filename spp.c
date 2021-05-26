@@ -101,14 +101,13 @@
 #define HCI_TRACE_OVER_TRANSPORT            1   // If defined HCI traces are send over transport/WICED HCI interface
 // configure either SEND_DATA_ON_INTERRUPT or SEND_DATA_ON_TIMEOUT, but not both
 // CYW9M2BASE-43012BT does not support SEND_DATA_ON_INTERRUPT because the platform does not have button connected to BT board.
-#if !defined (NO_BUTTON_SUPPORT)
-#define SEND_DATA_ON_INTERRUPT              1   // If defined application button causes 1Meg of data to be sent
-#else
-#define SEND_DATA_ON_INTERRUPT              0
+#if defined (NO_BUTTON_SUPPORT)
+#if defined(SEND_DATA_ON_INTERRUPT) && (SEND_DATA_ON_INTERRUPT==1)
+#undef SEND_DATA_ON_INTERRUPT                   // disable SEND_DATA_ON_INTERRUPT is no app button
+#define SEND_DATA_ON_TIMEOUT                1
 #endif
-#if defined(SEND_DATA_ON_INTERRUPT) && (SEND_DATA_ON_INTERRUPT==0)
-#define SEND_DATA_ON_TIMEOUT                1   // If defined application sends 4 bytes of data every second
 #endif
+
 //#define LOOPBACK_DATA                     1   // If defined application loops back received data
 
 #define WICED_EIR_BUF_MAX_SIZE              264
@@ -310,6 +309,7 @@ void buffer_report(char *msg)
 APPLICATION_START()
 {
     wiced_result_t result;
+    int interupt = 0, timeout = 0, loopback = 0;
 
 #if defined WICED_BT_TRACE_ENABLE || defined HCI_TRACE_OVER_TRANSPORT
     wiced_transport_init(&transport_cfg);
@@ -338,7 +338,17 @@ APPLICATION_START()
     wiced_set_debug_uart(WICED_ROUTE_DEBUG_TO_WICED_UART);
 #endif
 
-    WICED_BT_TRACE("APP Start\n");
+#if SEND_DATA_ON_INTERRUPT
+    interupt = 1;
+#endif
+#if SEND_DATA_ON_TIMEOUT
+    timeout = 1;
+#endif
+#if LOOPBACK_DATA
+    loopback = 1;
+#endif
+    WICED_BT_TRACE("APP Start, interupt=%d, timeout=%d, loopback=%d\n", interupt, timeout, loopback);
+
 
     /* Initialize Stack and Register Management Callback */
     // Register call back and configuration with stack
@@ -589,7 +599,7 @@ void spp_connection_down_callback(uint16_t handle)
     spp_tx_retry_count = 0;
 
     if(wiced_is_timer_in_use(&app_tx_timer))
-	wiced_stop_timer(&app_tx_timer);
+    wiced_stop_timer(&app_tx_timer);
 #endif
 }
 
