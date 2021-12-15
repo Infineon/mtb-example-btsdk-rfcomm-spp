@@ -76,6 +76,7 @@
  */
 
 #include "sparcommon.h"
+#include "bt_types.h"
 #include "wiced.h"
 #include "wiced_gki.h"
 #include "wiced_bt_dev.h"
@@ -94,8 +95,16 @@
 #include "string.h"
 #include "wiced_bt_stack.h"
 #include "wiced_bt_rfcomm.h"
+#include "cycfg_sdp_db.h"
 #if defined(CYW20706A2) || defined(CYW43012C0)
 #include "wiced_bt_app_hal_common.h"
+#endif
+
+#if BTSTACK_VER >= 0x03000001
+#include "wiced_memory.h"
+#include "clock_timer.h"
+#define BT_STACK_HEAP_SIZE          1024 * 6
+wiced_bt_heap_t *p_default_heap   = NULL;
 #endif
 
 #define HCI_TRACE_OVER_TRANSPORT            1   // If defined HCI traces are send over transport/WICED HCI interface
@@ -172,45 +181,20 @@ wiced_bt_spp_reg_t spp_reg =
     spp_connection_down_callback,       /* SPP connection disconnected */
     spp_rx_data_callback,               /* Data packet received */
 };
-
+#if BTSTACK_VER < 0x03000001
 wiced_transport_buffer_pool_t*  host_trans_pool;
+#endif
 uint16_t                        spp_handle = 0;
 wiced_timer_t                   app_tx_timer;
 uint32_t                        spp_rx_bytes = 0;
 uint32_t                        spp_tx_retry_count = 0;
 
-const uint8_t app_sdp_db[] = // Define SDP database
-{
-    SDP_ATTR_SEQUENCE_2(142),
-    SDP_ATTR_SEQUENCE_1(69),                                                // 2 bytes
-        SDP_ATTR_RECORD_HANDLE(0x10003),                                    // 8 bytes
-        SDP_ATTR_CLASS_ID(UUID_SERVCLASS_SERIAL_PORT),                      // 8
-        SDP_ATTR_RFCOMM_PROTOCOL_DESC_LIST( SPP_RFCOMM_SCN ),               // 17 bytes
-        SDP_ATTR_BROWSE_LIST,                                               // 8
-        SDP_ATTR_PROFILE_DESC_LIST(UUID_SERVCLASS_SERIAL_PORT, 0x0102),     // 13 byte
-        SDP_ATTR_SERVICE_NAME(10),                                          // 15
-        'S', 'P', 'P', ' ', 'S', 'E', 'R', 'V', 'E', 'R',
-
-    // Device ID service
-    SDP_ATTR_SEQUENCE_1(69),                                                // 2 bytes, length of the record
-        SDP_ATTR_RECORD_HANDLE(0x10002),                                    // 8 byte
-        SDP_ATTR_CLASS_ID(UUID_SERVCLASS_PNP_INFORMATION),                  // 8
-        SDP_ATTR_PROTOCOL_DESC_LIST(1),                                     // 18
-        SDP_ATTR_UINT2(ATTR_ID_SPECIFICATION_ID, 0x103),                    // 6
-        SDP_ATTR_UINT2(ATTR_ID_VENDOR_ID, 0x0f),                            // 6
-        SDP_ATTR_UINT2(ATTR_ID_PRODUCT_ID, 0x0401),                         // 6
-        SDP_ATTR_UINT2(ATTR_ID_PRODUCT_VERSION, 0x0001),                    // 6
-        SDP_ATTR_BOOLEAN(ATTR_ID_PRIMARY_RECORD, 0x01),                     // 5
-        SDP_ATTR_UINT2(ATTR_ID_VENDOR_ID_SOURCE, DI_VENDOR_ID_SOURCE_BTSIG) // 6
-};
-
-// Length of the SDP database
-const uint16_t app_sdp_db_len = sizeof(app_sdp_db);
-
 uint8_t pincode[4] = { 0x30, 0x30, 0x30, 0x30 };
 
 extern const wiced_bt_cfg_settings_t wiced_bt_cfg_settings;
+#if BTSTACK_VER < 0x03000001
 extern const wiced_bt_cfg_buf_pool_t wiced_bt_cfg_buf_pools[WICED_BT_CFG_NUM_BUF_POOLS];
+#endif
 
 #if defined WICED_BT_TRACE_ENABLE || defined HCI_TRACE_OVER_TRANSPORT
 const wiced_transport_cfg_t transport_cfg =
@@ -224,11 +208,20 @@ const wiced_transport_cfg_t transport_cfg =
             .baud_rate =  HCI_UART_DEFAULT_BAUD
         },
     },
+#if BTSTACK_VER >= 0x03000001
+        .heap_config =
+        {
+            .data_heap_size = 1024 * 4 + 1500 * 2,
+            .hci_trace_heap_size = 1024 * 2,
+            .debug_trace_heap_size = 1024,
+        },
+#else
     .rx_buff_pool_cfg =
     {
         .buffer_size  = TRANS_UART_BUFFER_SIZE,
         .buffer_count = 1
     },
+#endif
     .p_status_handler    = NULL,
     .p_data_handler      = NULL,
     .p_tx_complete_cback = NULL
@@ -251,8 +244,6 @@ static void                  app_interrupt_handler(void *data, uint8_t port_pin)
 static void                  app_trace_callback(wiced_bt_hci_trace_type_t type, uint16_t length, uint8_t* p_data);
 #endif
 
-
-extern void     wiced_bt_trace_array( const char *string, const uint8_t* array, const uint16_t len );
 #if defined (CYW20706A2)
 extern BOOL32 wiced_hal_puart_select_uart_pads(UINT8 rxdPin, UINT8 txdPin, UINT8 ctsPin, UINT8 rtsPin);
 extern wiced_result_t wiced_bt_app_init( void );
@@ -277,6 +268,35 @@ uint64_t clock_SystemTimeMicroseconds64(void)
 
 void buffer_report(char *msg)
 {
+#if BTSTACK_VER >= 0x03000001
+    /*
+     * Get statistics of default heap.
+     * TODO: get statistics of stack heap (btu_cb.p_heap)
+     */
+    wiced_bt_heap_statistics_t heap_stat;
+
+    if (wiced_bt_get_heap_statistics(p_default_heap, &heap_stat))
+    {
+        WICED_BT_TRACE("--- heap_size:%d ---\n", heap_stat.heap_size);
+        WICED_BT_TRACE("max_single_allocation:%d max_heap_size_used:%d\n",
+                        heap_stat.max_single_allocation,
+                        heap_stat.max_heap_size_used);
+        WICED_BT_TRACE("allocation_failure_count:%d current_largest_free_size:%d\n",
+                        heap_stat.allocation_failure_count,
+                        heap_stat.current_largest_free_size);
+        WICED_BT_TRACE("current_num_allocations:%d current_size_allocated:%d\n",
+                        heap_stat.current_num_allocations,
+                        heap_stat.current_size_allocated);
+        WICED_BT_TRACE("current_num_free_fragments:%d current_free_size\n",
+                        heap_stat.current_num_free_fragments,
+                        heap_stat.current_free_size);
+    }
+    else
+    {
+        WICED_BT_TRACE("buffer_report: wiced_bt_get_heap_statistics failed\n");
+    }
+#else /* !BTSTACK_VER */
+
     wiced_bt_buffer_statistics_t buffer_stats[5];
     wiced_result_t result;
 
@@ -299,6 +319,7 @@ void buffer_report(char *msg)
     }
     else
         WICED_BT_TRACE("buffer_report: wiced_bt_get_buffer_usage failed, returned %d\n", result);
+#endif
 }
 
 /*
@@ -314,8 +335,10 @@ APPLICATION_START()
 #if defined WICED_BT_TRACE_ENABLE || defined HCI_TRACE_OVER_TRANSPORT
     wiced_transport_init(&transport_cfg);
 
+#if BTSTACK_VER < 0x03000001
     // create special pool for sending data to the MCU
     host_trans_pool = wiced_transport_create_buffer_pool(TRANS_UART_BUFFER_SIZE, TRANS_MAX_BUFFERS);
+#endif
 
     // Set the debug uart as WICED_ROUTE_DEBUG_NONE to get rid of prints
     // wiced_set_debug_uart(WICED_ROUTE_DEBUG_NONE);
@@ -349,10 +372,22 @@ APPLICATION_START()
 #endif
     WICED_BT_TRACE("APP Start, interupt=%d, timeout=%d, loopback=%d\n", interupt, timeout, loopback);
 
-
+#if BTSTACK_VER >= 0x03000001
+    /* Create default heap */
+    p_default_heap = wiced_bt_create_heap("default_heap", NULL, BT_STACK_HEAP_SIZE, NULL, WICED_TRUE);
+    if (p_default_heap == NULL)
+    {
+        WICED_BT_TRACE("create default heap error: size %d\n", BT_STACK_HEAP_SIZE);
+        return;
+    }
+    /* Initialize Stack and Register Management Callback */
+    // Register call back and configuration with stack
+    wiced_bt_stack_init(app_management_callback, &wiced_bt_cfg_settings);
+#else
     /* Initialize Stack and Register Management Callback */
     // Register call back and configuration with stack
     wiced_bt_stack_init(app_management_callback, &wiced_bt_cfg_settings, wiced_bt_cfg_buf_pools);
+#endif
 }
 
 /*
@@ -360,7 +395,6 @@ APPLICATION_START()
  */
 void application_init(void)
 {
-    wiced_bt_gatt_status_t gatt_status;
     wiced_result_t         result;
 
 #if defined (CYW20706A2)
@@ -403,12 +437,21 @@ void application_init(void)
     wiced_bt_dev_register_hci_trace(app_trace_callback);
 #endif
     /* create SDP records */
-    wiced_bt_sdp_db_init((uint8_t *)app_sdp_db, sizeof(app_sdp_db));
+    wiced_bt_sdp_db_init((uint8_t *)sdp_database, sdp_database_len);
 
     /* Allow peer to pair */
     wiced_bt_set_pairable_mode(WICED_TRUE, 0);
 
+#if BTSTACK_VER >= 0x03000001
+        // This application will always configure device connectable and discoverable
+    wiced_bt_dev_set_discoverability(BTM_GENERAL_DISCOVERABLE,
+                                     WICED_BT_CFG_DEFAULT_INQUIRY_SCAN_INTERVAL,
+                                     WICED_BT_CFG_DEFAULT_INQUIRY_SCAN_WINDOW);
 
+    wiced_bt_dev_set_connectability(BTM_CONNECTABLE,
+                                    WICED_BT_CFG_DEFAULT_PAGE_SCAN_INTERVAL,
+                                    WICED_BT_CFG_DEFAULT_PAGE_SCAN_WINDOW);
+#else
     // This application will always configure device connectable and discoverable
     wiced_bt_dev_set_discoverability(BTM_GENERAL_DISCOVERABLE,
         wiced_bt_cfg_settings.br_edr_scan_cfg.inquiry_scan_interval,
@@ -417,14 +460,12 @@ void application_init(void)
     wiced_bt_dev_set_connectability(BTM_CONNECTABLE,
         wiced_bt_cfg_settings.br_edr_scan_cfg.page_scan_interval,
         wiced_bt_cfg_settings.br_edr_scan_cfg.page_scan_window);
-
+#endif
 
 #if SEND_DATA_ON_TIMEOUT
     /* Starting the app timers, seconds timer and the ms timer  */
-    if (wiced_init_timer(&spp_app_timer, app_timeout, 0, WICED_SECONDS_PERIODIC_TIMER) == WICED_SUCCESS)
-    {
-        wiced_start_timer(&spp_app_timer, 1);
-    }
+    wiced_init_timer(&spp_app_timer, app_timeout, 0, WICED_SECONDS_PERIODIC_TIMER);
+    wiced_start_timer(&spp_app_timer, 1);
 #endif
 }
 
@@ -552,7 +593,7 @@ void app_write_eir(void)
     eir_length = (uint16_t) (p - pBuf);
 
     // print EIR data
-    wiced_bt_trace_array("EIR :", pBuf, MIN(p-pBuf, 100));
+    WICED_BT_TRACE_ARRAY(pBuf, MIN(p-pBuf, 100), "EIR :");
     wiced_bt_dev_write_eir(pBuf, eir_length);
 
     return;
@@ -754,6 +795,10 @@ void app_tx_ack_timeout(uint32_t param)
  */
 void app_trace_callback(wiced_bt_hci_trace_type_t type, uint16_t length, uint8_t* p_data)
 {
+#if BTSTACK_VER >= 0x03000001
+    wiced_transport_send_hci_trace( type, p_data, length );
+#else
     wiced_transport_send_hci_trace(host_trans_pool, type, length, p_data);
+#endif
 }
 #endif
