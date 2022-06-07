@@ -16,7 +16,7 @@
                 <Attribute type="sdp.attribute.service_record_handle"/>
                 <Attribute type="sdp.attribute.service_class_id_list"/>
                 <Attribute type="sdp.attribute.protocol_descriptor_list">
-                    <DataElement name="Parameter 0" id="ELEM_ID_PROTOCOL_DESCR_LIST_P0" value="1"/>
+                    <DataElement name="Parameter 0" id="ELEM_ID_PROTOCOL_DESCR_LIST_P0" value="2"/>
                 </Attribute>
                 <Attribute type="sdp.attribute.language_base_attribute_id_list"/>
                 <Attribute type="sdp.attribute.browse_group_list"/>

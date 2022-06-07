@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2021, Cypress Semiconductor Corporation (an Infineon company) or
+ * Copyright 2016-2022, Cypress Semiconductor Corporation (an Infineon company) or
  * an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
  *
  * This software, including source code, documentation and related
@@ -152,17 +152,13 @@ uint32_t time_start = 0;
 
 #ifdef SEND_DATA_ON_TIMEOUT
 wiced_timer_t spp_app_timer;
-void app_timeout(uint32_t count);
+void app_timeout(TIMER_PARAM_TYPE arg);
 #endif
 
 /*****************************************************************************
 **  Structures
 *****************************************************************************/
-#if defined (CYW20706A2)
 #define SPP_RFCOMM_SCN               2
-#else
-#define SPP_RFCOMM_SCN               1
-#endif
 
 #define MAX_TX_RETRY                 30
 #define TX_RETRY_TIMEOUT             100 // msec
@@ -170,6 +166,7 @@ void app_timeout(uint32_t count);
 static void         spp_connection_up_callback(uint16_t handle, uint8_t* bda);
 static void         spp_connection_down_callback(uint16_t handle);
 static wiced_bool_t spp_rx_data_callback(uint16_t handle, uint8_t* p_data, uint32_t data_len);
+static void         spp_bt_remote_name_callback(wiced_bt_dev_remote_name_result_t *p_remote_name_result);
 
 wiced_bt_spp_reg_t spp_reg =
 {
@@ -237,7 +234,7 @@ static int                   app_write_nvram(int nvram_id, int data_len, void *p
 static int                   app_read_nvram(int nvram_id, void *p_data, int data_len);
 
 #if SEND_DATA_ON_INTERRUPT
-static void                  app_tx_ack_timeout(uint32_t param);
+static void                  app_tx_ack_timeout(TIMER_PARAM_TYPE param);
 static void                  app_interrupt_handler(void *data, uint8_t port_pin);
 #endif
 #ifdef HCI_TRACE_OVER_TRANSPORT
@@ -502,6 +499,8 @@ wiced_result_t app_management_callback(wiced_bt_management_evt_t event, wiced_bt
     case BTM_USER_CONFIRMATION_REQUEST_EVT:
         /* This application always confirms peer's attempt to pair */
         wiced_bt_dev_confirm_req_reply (WICED_BT_SUCCESS, p_event_data->user_confirmation_request.bd_addr);
+        /* get the remote name to show in the log */
+        result = wiced_bt_dev_get_remote_name(p_event_data->user_confirmation_request.bd_addr, spp_bt_remote_name_callback);
         break;
 
     case BTM_PAIRING_IO_CAPABILITIES_BR_EDR_REQUEST_EVT:
@@ -603,7 +602,7 @@ void app_write_eir(void)
  * The function invoked on timeout of app seconds timer.
  */
 #if SEND_DATA_ON_TIMEOUT
-void app_timeout(uint32_t count)
+void app_timeout(TIMER_PARAM_TYPE arg)
 {
     static uint32_t timer_count = 0;
     timer_count++;
@@ -672,6 +671,16 @@ wiced_bool_t spp_rx_data_callback(uint16_t handle, uint8_t* p_data, uint32_t dat
 #else
     return WICED_TRUE;
 #endif
+}
+
+/*
+ * spp_bt_remote_name_callback
+ */
+static void spp_bt_remote_name_callback(wiced_bt_dev_remote_name_result_t *p_remote_name_result)
+{
+    WICED_BT_TRACE("Pairing with: BdAddr:%B Status:%d Len:%d Name:%s\n",
+            p_remote_name_result->bd_addr, p_remote_name_result->status,
+            p_remote_name_result->length, p_remote_name_result->remote_bd_name);
 }
 
 /*
@@ -782,7 +791,7 @@ void app_interrupt_handler(void *data, uint8_t port_pin)
 /*
  * The timeout function is periodically called while we are sending big amount of data
  */
-void app_tx_ack_timeout(uint32_t param)
+void app_tx_ack_timeout(TIMER_PARAM_TYPE param)
 {
     app_send_data();
 }
