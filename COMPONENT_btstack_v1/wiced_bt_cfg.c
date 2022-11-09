@@ -70,9 +70,9 @@ const wiced_bt_cfg_settings_t wiced_bt_cfg_settings =
         .page_scan_window                = WICED_BT_CFG_DEFAULT_PAGE_SCAN_WINDOW                       /**< Page scan window (0 to use default) */
     },
 
-    .ble_scan_cfg =                                                 /* BLE scan settings  */
+    .ble_scan_cfg =                                                 /* LE scan settings  */
     {
-        .scan_mode                       = BTM_BLE_SCAN_MODE_ACTIVE,                                  /**< BLE scan mode (BTM_BLE_SCAN_MODE_PASSIVE, BTM_BLE_SCAN_MODE_ACTIVE, or BTM_BLE_SCAN_MODE_NONE) */
+        .scan_mode                       = BTM_BLE_SCAN_MODE_ACTIVE,                                  /**< LE scan mode (BTM_BLE_SCAN_MODE_PASSIVE, BTM_BLE_SCAN_MODE_ACTIVE, or BTM_BLE_SCAN_MODE_NONE) */
 
         /* Advertisement scan configuration */
         .high_duty_scan_interval         = 96,                                                         /**< High duty scan interval */
@@ -99,7 +99,7 @@ const wiced_bt_cfg_settings_t wiced_bt_cfg_settings =
         .conn_supervision_timeout        = WICED_BT_CFG_DEFAULT_CONN_SUPERVISION_TIMEOUT,              /**< Connection link supervision timeout */
     },
 
-    .ble_advert_cfg =                                               /* BLE advertisement settings */
+    .ble_advert_cfg =                                               /* LE advertisement settings */
     {
         .channel_map                     = BTM_BLE_ADVERT_CHNL_37 |                                    /**< Advertising channel map (mask of BTM_BLE_ADVERT_CHNL_37, BTM_BLE_ADVERT_CHNL_38, BTM_BLE_ADVERT_CHNL_39) */
                                            BTM_BLE_ADVERT_CHNL_38 |
@@ -189,7 +189,7 @@ const wiced_bt_cfg_settings_t wiced_bt_cfg_settings =
 
     /* Interval of  random address refreshing */
     .rpa_refresh_timeout                = WICED_BT_CFG_DEFAULT_RANDOM_ADDRESS_NEVER_CHANGE,            /**< Interval of  random address refreshing - secs */
-    /* BLE Filter Accept List size */
+    /* LE Filter Accept List size */
     .ble_filter_accept_list_size                = 0,                                                           /**< Maximum number of Filter Accept List devices allowed. Cannot be more than 128 */
 #endif
 

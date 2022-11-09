@@ -48,11 +48,11 @@
  *
  * To demonstrate the app, work through the following steps.
  * 1. Build and download the application to the WICED board.
- * 2. Open the BT/BLE Profile Client Control application and open the port for WICED HCI for the device.
+ * 2. Open the Bluetooth Classic and LE Profile Client Control application and open the port for WICED HCI for the device.
  *    Default baud rate configured in the application is defined by the BSP HCI_UART_DEAULT_BAUD #define,
  *    usually either 3M or 115200 depending on board UART capabilities.
  * 3. Run the BTSpy program to view protocol and application traces.
- *    See "BT/BLE Profile Client Control" and "BT Spy" in chip-specifc readme.txt for more information about these apps.
+ *    See "Bluetooth Classic and LE Profile Client Control" and "BTSpy" in chip-specifc readme.txt for more information about these apps.
  * 4. On Windows 10 PCs, right click on the Bluetooth icon in the system tray and
  *    select 'Add a Bluetooth Device'. Find and pair with the spp app. That should create an incoming and an outgoing
  *    COM port on your computer. Right click on the Bluetooth icon in the system tray and
@@ -109,7 +109,7 @@ wiced_bt_heap_t *p_default_heap   = NULL;
 
 #define HCI_TRACE_OVER_TRANSPORT            1   // If defined HCI traces are send over transport/WICED HCI interface
 // configure either SEND_DATA_ON_INTERRUPT or SEND_DATA_ON_TIMEOUT, but not both
-// CYW9M2BASE-43012BT does not support SEND_DATA_ON_INTERRUPT because the platform does not have button connected to BT board.
+// CYW9M2BASE-43012BT does not support SEND_DATA_ON_INTERRUPT because the platform does not have button connected to Bluetooth board.
 #if defined (NO_BUTTON_SUPPORT)
 #if defined(SEND_DATA_ON_INTERRUPT) && (SEND_DATA_ON_INTERRUPT==1)
 #undef SEND_DATA_ON_INTERRUPT                   // disable SEND_DATA_ON_INTERRUPT is no app button
@@ -320,9 +320,9 @@ void buffer_report(char *msg)
 }
 
 /*
- * Entry point to the application. Set device configuration and start BT
+ * Entry point to the application. Set device configuration and start Bluetooth
  * stack initialization.  The actual application initialization will happen
- * when stack reports that BT device is ready
+ * when stack reports that Bluetooth device is ready
  */
 APPLICATION_START()
 {
@@ -388,7 +388,7 @@ APPLICATION_START()
 }
 
 /*
- * SPP application initialization is executed after BT stack initialization is completed.
+ * SPP application initialization is executed after Bluetooth stack initialization is completed.
  */
 void application_init(void)
 {
@@ -429,7 +429,7 @@ void application_init(void)
 
 #ifdef HCI_TRACE_OVER_TRANSPORT
     // There is a virtual HCI interface between upper layers of the stack and
-    // the controller portion of the chip with lower layers of the BT stack.
+    // the controller portion of the chip with lower layers of the Bluetooth stack.
     // Register with the stack to receive all HCI commands, events and data.
     wiced_bt_dev_register_hci_trace(app_trace_callback);
 #endif
