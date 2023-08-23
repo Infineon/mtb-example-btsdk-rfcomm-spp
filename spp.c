@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2022, Cypress Semiconductor Corporation (an Infineon company) or
+ * Copyright 2016-2023, Cypress Semiconductor Corporation (an Infineon company) or
  * an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
  *
  * This software, including source code, documentation and related
@@ -442,21 +442,21 @@ void application_init(void)
 #if BTSTACK_VER >= 0x03000001
         // This application will always configure device connectable and discoverable
     wiced_bt_dev_set_discoverability(BTM_GENERAL_DISCOVERABLE,
-                                     WICED_BT_CFG_DEFAULT_INQUIRY_SCAN_INTERVAL,
-                                     WICED_BT_CFG_DEFAULT_INQUIRY_SCAN_WINDOW);
+                                     WICED_BT_CFG_DEFAULT_INQUIRY_SCAN_WINDOW,
+                                     WICED_BT_CFG_DEFAULT_INQUIRY_SCAN_INTERVAL);
 
     wiced_bt_dev_set_connectability(BTM_CONNECTABLE,
-                                    WICED_BT_CFG_DEFAULT_PAGE_SCAN_INTERVAL,
-                                    WICED_BT_CFG_DEFAULT_PAGE_SCAN_WINDOW);
+                                    WICED_BT_CFG_DEFAULT_PAGE_SCAN_WINDOW,
+                                    WICED_BT_CFG_DEFAULT_PAGE_SCAN_INTERVAL);
 #else
     // This application will always configure device connectable and discoverable
     wiced_bt_dev_set_discoverability(BTM_GENERAL_DISCOVERABLE,
-        wiced_bt_cfg_settings.br_edr_scan_cfg.inquiry_scan_interval,
-        wiced_bt_cfg_settings.br_edr_scan_cfg.inquiry_scan_window);
+        wiced_bt_cfg_settings.br_edr_scan_cfg.inquiry_scan_window,
+        wiced_bt_cfg_settings.br_edr_scan_cfg.inquiry_scan_interval);
 
     wiced_bt_dev_set_connectability(BTM_CONNECTABLE,
-        wiced_bt_cfg_settings.br_edr_scan_cfg.page_scan_interval,
-        wiced_bt_cfg_settings.br_edr_scan_cfg.page_scan_window);
+        wiced_bt_cfg_settings.br_edr_scan_cfg.page_scan_window,
+        wiced_bt_cfg_settings.br_edr_scan_cfg.page_scan_interval);
 #endif
 
 #if SEND_DATA_ON_TIMEOUT
@@ -594,6 +594,9 @@ void app_write_eir(void)
     // print EIR data
     WICED_BT_TRACE_ARRAY(pBuf, MIN(p-pBuf, 100), "EIR :");
     wiced_bt_dev_write_eir(pBuf, eir_length);
+
+    // Free pBuf
+    wiced_bt_free_buffer(pBuf);
 
     return;
 }

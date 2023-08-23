@@ -13,7 +13,7 @@ To demonstrate the app, work through the following steps:
 2. Open the ClientControl application and open the "WICED HCI" serial port for the device. Default baud rate configured in the application is defined by the BSP HCI\_UART\_DEAULT\_BAUD #define, usually either 3M or 115200 depending on board UART capabilities.
 3. Run the BTSpy program to view protocol and application traces.
 4. On Windows 10 PCs, right click on the Bluetooth&#174; icon in the system tray and select 'Add a Bluetooth Device'. Find and pair with the spp app. That will create an incoming and an outgoing COM port on your computer. Right click on the Bluetooth&#174; icon in the system tray and select 'Open Settings', scroll down and select "More Bluetooth options" and then select the 'COM Ports' tab.
-5. Use application such as Term Term to open the outgoing COM port. Opening the port will create the SPP connection.
+5. Use application such as TeraTerm to open the outgoing COM port. Opening the port will create the SPP connection.
 6. Type any key on the terminal of the outgoing COM port, the spp application will receive the key.
 7. For 20721B2 based AIROC&#8482; kits, use the Custom button on audio shield board as application button rather than the button on the base board.
 
@@ -49,7 +49,7 @@ Application settings below are common for all BTSDK applications and can be conf
 > Set to the UART port you want to use to download the application. For example 'COM6' on Windows or '/dev/ttyWICED\_HCI\_UART0' on Linux or '/dev/tty.usbserial-000154' on macOS. By default, the SDK will auto-detect the port.
 
 ##### ENABLE_DEBUG
-> For HW debugging, configure ENABLE\_DEBUG=1. See the document [AIROC&#8482;-Hardware-Debugging](https://github.com/Infineon/btsdk-docs/blob/master/docs/BT-SDK/WICED-Hardware-Debugging.pdf) for more information. This setting configures GPIO for SWD.<br>
+> For HW debugging, configure ENABLE\_DEBUG=1. See the document [AIROC&#8482;-Hardware-Debugging](https://infineon.github.io/btsdk-docs/BT-SDK/AIROC-Hardware-Debugging.pdf) for more information. This setting configures GPIO for SWD.<br>
 >
    - CYW920819EVB-02/CYW920820EVB-02: SWD signals are shared with D4 and D5, see SW9 in schematics.
    - CYBT-213043-MESH/CYBT-213043-EVAL/CYBT-253059-EVAL: SWD signals are routed to P12=SWDCK and P13=SWDIO. Use expansion connectors to connect VDD, GND, SWDCK, and SWDIO to your SWD Debugger probe.
@@ -65,20 +65,32 @@ Application settings below are common for all BTSDK applications and can be conf
    - CYW920736M2EVB-01: SWD hardware debugging requires fly-wire connections. The only option is using P14 for SWDCK and P15 for SWDIO. These route to Arduino header J2, A1 and A0. These can be fly-wired to Arduino header J4, D4 and D5. From there the signals connect to the KitProg3 SWD bridge. In addition, the debug macros (SETUP\_APP\_FOR\_DEBUG\_IF\_DEBUG\_ENABLED and BUSY\_WAIT\_TILL\_MANUAL\_CONTINUE\_IF\_DEBUG\_ENABLED) are placed in sparinit.c in code common to all applications for this device. Most applications for this device call bleprofile\_GPIOInit() in subsequent code, overwriting the SWD pin configuration. To use hardware debugging after the call to bleprofile\_GPIOInit(), place the debug macros in code after that call.
    - CYW943012B2EVK-01: SWD signals are shared with D4 and D5.
    - CYW920820M2EVB-01 & CYW920819M2EVB-01: The default setup uses P03 for SWDIO and P02 for SWDCK. Check the position of SW15 if using JLink with the DEBUG connector.
-   - CYW989820M2EVB-01: SWD hardware debugging requires fly-wire connections to use P12 for SWDIO and P14 for SWDCK. First set SW8 switch to position 1, and then P12 / RSVD_3 can be used for SWDIO. And fly-wire P14 / ARD_D8 on J3.10 to J12.4 to connect SWDCK on RSVD_4 on J12.4.
+   - CYW989820M2EVB-01: SWD hardware debugging requires a fly-wire connection to use P14 for SWDIO. P2 is connected directly to SWDCK / ARD_D4. Fly-wire P14 / ARD_D8 on J3.10 to J4.3 / ARD_D5 to connect SWDIO.
 
    - SWD hardware debugging is not supported on the following:
-   >- CYW920721M2EVK-01
-   >- CYW920835REF-RCU-01
-   >- CYW920819REF-KB-01
-   >- CYW9M2BASE-43012BT
-   >- CYBT-423054-EVAL
-   >- CYBT-423060-EVAL
-   >- CYBT-483056-EVAL
-   >- CYBT-483062-EVAL
-   >- CYW955572BTEVK-01
+      - CYW920721M2EVK-01
+      - CYW920835REF-RCU-01
+      - CYW9M2BASE-43012BT
+      - CYBT-423054-EVAL
+      - CYBT-423060-EVAL
+      - CYBT-483056-EVAL
+      - CYBT-483062-EVAL
+      - CYW955572BTEVK-01
+      - CYW943022BTEVK-01
 
-## Building code examples
+##### DIRECT_LOAD
+> BTSDK chips support downloading applications either to FLASH storage or to RAM storage. Some chips support only one or the other, and some chips support both.
+
+> If a chip only supports one or the other, this variable is not applicable, applications will be downloaded to the appropriate storage supported by the device.
+
+> If a chip supports both FLASH and RAM downloads, the default is to download to FLASH, and the DIRECT_LOAD make variable may be set to 1 in the application makefile (or in the command line make command) to override the default and download to RAM.
+
+> Currently, the following chips support both FLASH and RAM download and can set DIRECT_LOAD=1 if desired:
+>
+   - CYW20835
+   - CYW20706
+
+## Building and downloading code examples
 
 **Using the ModusToolbox&#8482; Eclipse IDE**
 
@@ -108,8 +120,6 @@ Application settings below are common for all BTSDK applications and can be conf
    > make program<br/><br>
    Note: make program = make build + make qprogram
 
-## Downloading an application to a board
-
 If you have issues downloading to the board, follow the steps below:
 
 - Press and hold the 'Recover' button on the board.
@@ -117,7 +127,7 @@ If you have issues downloading to the board, follow the steps below:
 - Release the 'Reset' button.
 - After one second, release the 'Recover' button.
 
-Note: this is only applicable to boards that download application images to FLASH storage. Boards that only support RAM download (DIRECT_LOAD) such as CYW9M2BASE-43012BT can be power cycled to boot from ROM.
+Note: this is only applicable to boards that download application images to FLASH storage. Boards that only support RAM download (DIRECT_LOAD) such as CYW9M2BASE-43012BT or CYW943022BTEVK-01 can be power cycled to boot from ROM.
 
 ## Over The Air (OTA) Firmware Upgrade
 Applications that support OTA upgrade can be updated via the peer OTA app in:<br>
@@ -155,19 +165,21 @@ Note: this is a list of all features and profiles supported in BTSDK, but some A
 ## List of boards available for use with BTSDK
 
 - [CYW20819A1 chip](https://github.com/Infineon/20819A1)
-    - [CYW920819EVB-02](https://github.com/Infineon/TARGET_CYW920819EVB-02), [CYW920819M2EVB-01](https://github.com/Infineon/TARGET_CYW920819M2EVB-01), [CYBT-213043-MESH](https://github.com/infineon/TARGET_CYBT-213043-MESH), [CYBT-213043-EVAL](https://github.com/infineon/TARGET_CYBT-213043-EVAL), [CYW920819REF-KB-01](https://github.com/infineon/TARGET_CYW920819REF-KB-01), [CYBT-223058-EVAL](https://github.com/infineon/TARGET_CYBT-223058-EVAL), [CYBT-263065-EVAL](https://github.com/infineon/TARGET_CYBT-263065-EVAL), [CYBT-273063-EVAL](https://github.com/infineon/TARGET_CYBT-273063-EVAL)
-- [CYW20820A1 chip](https://github.com/infineon/20820A1)
-    - [CYW920820EVB-02](https://github.com/infineon/TARGET_CYW920820EVB-02), [CYW989820M2EVB-01](https://github.com/infineon/TARGET_CYW989820M2EVB-01), [CYW989820EVB-01](https://github.com/infineon/TARGET_CYW989820EVB-01), [CYBT-243053-EVAL](https://github.com/infineon/TARGET_CYBT-243053-EVAL), [CYBT-253059-EVAL](https://github.com/infineon/TARGET_CYBT-253059-EVAL), [CYW920820M2EVB-01](https://github.com/Infineon/TARGET_CYW920820M2EVB-01)
-- [CYW20721B2 chip](https://github.com/infineon/20721B2)
-    - [CYW920721M2EVK-01](https://github.com/infineon/TARGET_CYW920721M2EVK-01), [CYW920721M2EVK-02](https://github.com/infineon/TARGET_CYW920721M2EVK-02), [CYW920721M2EVB-03](https://github.com/Infineon/TARGET_CYW920721M2EVB-03), [CYBT-423060-EVAL](https://github.com/infineon/TARGET_CYBT-423060-EVAL), [CYBT-483062-EVAL](https://github.com/infineon/TARGET_CYBT-483062-EVAL), [CYBT-413061-EVAL](https://github.com/infineon/TARGET_CYBT-413061-EVAL)
-- [CYW20719B2 chip](https://github.com/infineon/20719B2)
-    - [CYW920719B2Q40EVB-01](https://github.com/infineon/TARGET_CYW920719B2Q40EVB-01), [CYBT-423054-EVAL](https://github.com/infineon/TARGET_CYBT-423054-EVAL), [CYBT-413055-EVAL](https://github.com/infineon/TARGET_CYBT-413055-EVAL), [CYBT-483056-EVAL](https://github.com/infineon/TARGET_CYBT-483056-EVAL)
-- [CYW20706A2 chip](https://github.com/infineon/20706A2)
-    - [CYW920706WCDEVAL](https://github.com/infineon/TARGET_CYW920706WCDEVAL), [CYBT-353027-EVAL](https://github.com/infineon/TARGET_CYBT-353027-EVAL), [CYBT-343026-EVAL](https://github.com/infineon/TARGET_CYBT-343026-EVAL), [CYBT-333047-EVAL](https://github.com/Infineon/TARGET_CYBT-333047-EVAL)
-- [CYW20835B1 chip](https://github.com/infineon/20835B1)
-    - [CYW920835REF-RCU-01](https://github.com/infineon/TARGET_CYW920835REF-RCU-01), [CYW920835M2EVB-01](https://github.com/infineon/TARGET_CYW920835M2EVB-01), [CYBLE-343072-EVAL-M2B](https://github.com/Infineon/TARGET_CYBLE-343072-EVAL-M2B), [CYBLE-333074-EVAL-M2B](https://github.com/Infineon/TARGET_CYBLE-333074-EVAL-M2B), [CYBLE-343072-MESH](https://github.com/Infineon/TARGET_CYBLE-343072-MESH)
-- [CYW43012C0 chip](https://github.com/infineon/43012C0)
+    - [CYW920819EVB-02](https://github.com/Infineon/TARGET_CYW920819EVB-02), [CYW920819M2EVB-01](https://github.com/Infineon/TARGET_CYW920819M2EVB-01), [CYBT-213043-MESH](https://github.com/Infineon/TARGET_CYBT-213043-MESH), [CYBT-213043-EVAL](https://github.com/Infineon/TARGET_CYBT-213043-EVAL), [CYBT-223058-EVAL](https://github.com/Infineon/TARGET_CYBT-223058-EVAL), [CYBT-263065-EVAL](https://github.com/Infineon/TARGET_CYBT-263065-EVAL), [CYBT-273063-EVAL](https://github.com/Infineon/TARGET_CYBT-273063-EVAL)
+- [CYW20820A1 chip](https://github.com/Infineon/20820A1)
+    - [CYW920820EVB-02](https://github.com/Infineon/TARGET_CYW920820EVB-02), [CYW989820M2EVB-01](https://github.com/Infineon/TARGET_CYW989820M2EVB-01), [CYW989820EVB-01](https://github.com/Infineon/TARGET_CYW989820EVB-01), [CYBT-243053-EVAL](https://github.com/Infineon/TARGET_CYBT-243053-EVAL), [CYBT-253059-EVAL](https://github.com/Infineon/TARGET_CYBT-253059-EVAL), [CYW920820M2EVB-01](https://github.com/Infineon/TARGET_CYW920820M2EVB-01)
+- [CYW20721B2 chip](https://github.com/Infineon/20721B2)
+    - [CYW920721M2EVK-01](https://github.com/Infineon/TARGET_CYW920721M2EVK-01), [CYW920721M2EVK-02](https://github.com/Infineon/TARGET_CYW920721M2EVK-02), [CYW920721M2EVB-03](https://github.com/Infineon/TARGET_CYW920721M2EVB-03), [CYBT-423060-EVAL](https://github.com/Infineon/TARGET_CYBT-423060-EVAL), [CYBT-483062-EVAL](https://github.com/Infineon/TARGET_CYBT-483062-EVAL), [CYBT-413061-EVAL](https://github.com/Infineon/TARGET_CYBT-413061-EVAL)
+- [CYW20719B2 chip](https://github.com/Infineon/20719B2)
+    - [CYW920719B2Q40EVB-01](https://github.com/Infineon/TARGET_CYW920719B2Q40EVB-01), [CYBT-423054-EVAL](https://github.com/Infineon/TARGET_CYBT-423054-EVAL), [CYBT-413055-EVAL](https://github.com/Infineon/TARGET_CYBT-413055-EVAL), [CYBT-483056-EVAL](https://github.com/Infineon/TARGET_CYBT-483056-EVAL)
+- [CYW20706A2 chip](https://github.com/Infineon/20706A2)
+    - [CYW920706WCDEVAL](https://github.com/Infineon/TARGET_CYW920706WCDEVAL), [CYBT-353027-EVAL](https://github.com/Infineon/TARGET_CYBT-353027-EVAL), [CYBT-343026-EVAL](https://github.com/Infineon/TARGET_CYBT-343026-EVAL), [CYBT-333047-EVAL](https://github.com/Infineon/TARGET_CYBT-333047-EVAL)
+- [CYW20835B1 chip](https://github.com/Infineon/20835B1)
+    - [CYW920835REF-RCU-01](https://github.com/Infineon/TARGET_CYW920835REF-RCU-01), [CYW920835M2EVB-01](https://github.com/Infineon/TARGET_CYW920835M2EVB-01), [CYBLE-343072-EVAL-M2B](https://github.com/Infineon/TARGET_CYBLE-343072-EVAL-M2B), [CYBLE-333074-EVAL-M2B](https://github.com/Infineon/TARGET_CYBLE-333074-EVAL-M2B), [CYBLE-343072-MESH](https://github.com/Infineon/TARGET_CYBLE-343072-MESH)
+- [CYW43012C0 chip](https://github.com/Infineon/43012C0)
     - [CYW9M2BASE-43012BT](https://github.com/Infineon/TARGET_CYW9M2BASE-43012BT), [CYW943012BTEVK-01](https://github.com/Infineon/TARGET_CYW943012BTEVK-01)
+- [CYW43022C1 chip](https://github.com/Infineon/43022C1)
+    - [CYW943022BTEVK-01](https://github.com/Infineon/TARGET_CYW943022BTEVK-01)
 - [CYW20736A1 chip](https://github.com/Infineon/20736A1)
     - [CYW920736M2EVB-01](https://github.com/Infineon/TARGET_CYW920736M2EVB-01)
 - [CYW30739A0 chip](https://github.com/Infineon/30739A0)
@@ -283,7 +295,7 @@ To view application traces, there are 2 methods available. Note that the
 application needs to configure the tracing options.<br>
 
 1. "WICED Peripheral UART" - Open this port on your computer using a serial port
-utility such as Tera Term or PuTTY (usually using 115200 baud rate for non-Mesh apps, and 921600 for Mesh apps).<br>
+utility such as TeraTerm or PuTTY (usually using 115200 baud rate for non-Mesh apps, and 921600 for Mesh apps).<br>
 2. "WICED HCI UART" - Open this port on your computer using the Client Control
 application mentioned above (usually using 3M baud rate). Then run the BTSpy
 utility mentioned above.
@@ -353,3 +365,6 @@ BTSDK API documentation is available [online](https://infineon.github.io/btsdk-d
 Note: For offline viewing, git clone the [documentation repo](https://github.com/Infineon/btsdk-docs)
 
 BTSDK Technical Brief and Release Notes are available [online](https://community.infineon.com/t5/Bluetooth-SDK/bd-p/ModusToolboxBluetoothSDK)
+
+<br>
+<sup>The Bluetooth&#174; word mark and logos are registered trademarks owned by Bluetooth SIG, Inc., and any use of such marks by Infineon is under license.</sup>
